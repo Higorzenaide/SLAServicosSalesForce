@@ -223,6 +223,7 @@
                     numeroCompromisso,
                     tempoRestante,
                     dataVencimento: dataVencimentoFormatada, // Usando a data formatada
+                    vencimentoTimestamp: dataVencimento.getTime(), // Adicionando o timestamp para ordenação
                     isVencido: diff < 0 // Adicionando um indicador para saber se já venceu
                 });
             });
@@ -231,7 +232,7 @@
             processedData.sort((a, b) => {
                 if (a.isVencido && !b.isVencido) return 1; // b primeiro
                 if (!a.isVencido && b.isVencido) return -1; // a primeiro
-                return new Date(a.dataVencimento) - new Date(b.dataVencimento);
+                return a.vencimentoTimestamp - b.vencimentoTimestamp; // Ordena pelo timestamp
             });
 
             return processedData;
