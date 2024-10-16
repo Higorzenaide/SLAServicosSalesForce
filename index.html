@@ -83,10 +83,14 @@
             justify-content: center;
             gap: 10px;
         }
+        h5{
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <h1>Prazos de vencimento</h1>
+    <h5>Necessário arquivo que contenha, "Cidade", "Primeiro agendamento", "SA"</h5>
     <input type="file" id="csvFile" accept=".csv">
     <button id="removeFile" >Remover Arquivo</button>
     <button id="downloadAll" >Baixar Todos os Dados</button>
@@ -246,11 +250,11 @@
             const headerRow = document.createElement("tr");
             headerRow.innerHTML = `
                 <th>Cidade</th>
-                <th>Data do Agendamento</th>
+                <th>Data do Primeiro Agendamento</th>
                 <th>Tipo de Trabalho</th>
                 <th>Número de Compromisso</th>
                 <th>Tempo até Vencer</th>
-                <th>Data de Vencimento</th>
+                <th>Data de Vencimento arredondado</th>
             `;
             table.appendChild(headerRow);
 
