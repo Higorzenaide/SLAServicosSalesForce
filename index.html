@@ -14,7 +14,7 @@
             text-align: center;
             color: #333;
         }
-        input[type="file"] {
+        input[type="file"], input[type="text"] {
             margin: 10px 0;
             padding: 8px;
             font-size: 16px;
@@ -68,6 +68,14 @@
             margin: 0 auto;
             overflow-x: auto;
         }
+        .filter-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .filter-container input {
+            width: 20%;
+        }
     </style>
 </head>
 <body>
@@ -76,12 +84,22 @@
     <button id="removeFile" style="display:none;">Remover Arquivo</button>
     <div id="loadingIndicator">Carregando...</div>
     <div id="output" class="table-container">
+        <div class="filter-container">
+            <input type="text" id="filterCidade" placeholder="Filtrar por Cidade">
+            <input type="text" id="filterAgendamento" placeholder="Filtrar por Data Agendamento">
+            <input type="text" id="filterTipoTrabalho" placeholder="Filtrar por Tipo de Trabalho">
+            <input type="text" id="filterNumero" placeholder="Filtrar por Número de Compromisso">
+            <input type="text" id="filterTempo" placeholder="Filtrar por Tempo até Vencer">
+        </div>
         <table id="csvTable"></table>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         document.getElementById("csvFile").addEventListener("change", handleFileSelect);
+        document.getElementById("removeFile").addEventListener("click", removeFile);
+
+        let currentData = [];
 
         function handleFileSelect(event) {
             const file = event.target.files[0];
@@ -103,7 +121,8 @@
                     worker: true,
                     complete: function(results) {
                         loadingIndicator.style.display = 'none';
-                        processCsvData(results.data);
+                        currentData = processCsvData(results.data);
+                        displayTable(currentData);
                     },
                     error: function(err) {
                         console.error("Erro ao processar o arquivo", err);
@@ -115,128 +134,151 @@
             reader.readAsText(file, "ISO-8859-1");
         }
 
+        function removeFile() {
+            document.getElementById("csvFile").value = ''; // Limpa o campo de upload
+            currentData = []; // Reseta os dados
+            document.getElementById("removeFile").style.display = 'none'; // Esconde o botão de remover
+            document.getElementById("csvTable").innerHTML = ''; // Limpa a tabela
+        }
+
         function processCsvData(data) {
-            const table = document.getElementById("csvTable");
             const now = new Date(); // Data atual
-            console.log("Data atual:", now);
+            const processedData = [];
 
-            if (data.length > 0) {
-                // Cria o cabeçalho da tabela
-                const headers = ["Cidade", "Data do Primeiro Agendamento", "Tipo de Trabalho", "Número de compromisso", "Tempo até vencer"];
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                headers.forEach(header => {
-                    const th = document.createElement('th');
-                    th.textContent = header;
-                    headerRow.appendChild(th);
+            data.forEach(row => {
+                const agendamento = row["Data do Primeiro Agendamento"];
+                const tipoTrabalho = row["Tipo de Trabalho"];
+                const numeroCompromisso = row["Número de compromisso"];
+                const cidade = row["Cidade"];
+
+                // Ignora linhas vazias
+                if (!agendamento || !tipoTrabalho || !numeroCompromisso || !cidade) {
+                    return; // Pula esta linha se qualquer um dos dados obrigatórios estiver ausente
+                }
+
+                // Ignora "Retirada de Equipamento"
+                if (tipoTrabalho === "Retirada de Equipamento") {
+                    return; // Pula esta linha se o tipo de trabalho for "Retirada de Equipamento"
+                }
+
+                // Extraindo a data e hora do agendamento
+                const [dataAgendamento, horaAgendamento] = agendamento.split(" ");
+                const [dia, mes, ano] = dataAgendamento.split("/").map(Number);
+                const [hora, minuto] = horaAgendamento.split(":").map(Number);
+
+                // Determinando o prazo de vencimento com base no tipo de trabalho
+                let prazoVencimento = 0;
+                if (tipoTrabalho === "Manutenção") {
+                    prazoVencimento = 24; // 24 horas
+                } else if (tipoTrabalho === "Mudança de endereço" || tipoTrabalho === "Ativação") {
+                    prazoVencimento = 72; // 72 horas
+                } else {
+                    return; // Se o tipo de trabalho não for relevante, ignora
+                }
+
+                // Calculando a data de vencimento
+                const dataVencimento = new Date(ano, mes - 1, dia, hora + prazoVencimento, minuto);
+                // Verificando se já venceu
+                let tempoRestante;
+                const diff = dataVencimento - now; // diferença em milissegundos
+
+                if (diff < 0) {
+                    tempoRestante = "Já venceu";
+                } else {
+                    const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    tempoRestante = `${dias} dias, ${horas} horas e ${minutos} minutos`;
+                }
+
+                processedData.push({
+                    cidade,
+                    agendamento,
+                    tipoTrabalho,
+                    numeroCompromisso,
+                    tempoRestante,
+                    dataVencimento,
+                    isVencido: diff < 0 // Adicionando um indicador para saber se já venceu
                 });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
+            });
 
-                // Cria o corpo da tabela
-                const tbody = document.createElement('tbody');
-                const processedData = [];
+            // Ordena os dados pelo tempo restante, colocando os não vencidos primeiro
+            processedData.sort((a, b) => {
+                if (a.isVencido && !b.isVencido) return 1; // b primeiro
+                if (!a.isVencido && b.isVencido) return -1; // a primeiro
+                return a.dataVencimento - b.dataVencimento; // Ordena por data de vencimento se ambos forem iguais
+            });
 
-                data.forEach(row => {
-                    const agendamento = row["Data do Primeiro Agendamento"];
-                    const tipoTrabalho = row["Tipo de Trabalho"];
-                    const numeroCompromisso = row["Número de compromisso"];
-                    const cidade = row["Cidade"];
+            return processedData;
+        }
 
-                    // Ignora linhas vazias
-                    if (!agendamento || !tipoTrabalho || !numeroCompromisso || !cidade) {
-                        return; // Pula esta linha se qualquer um dos dados obrigatórios estiver ausente
-                    }
+        function displayTable(data) {
+            const table = document.getElementById("csvTable");
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            const headers = ["Cidade", "Data do Primeiro Agendamento", "Tipo de Trabalho", "Número de compromisso", "Tempo até vencer"];
 
-                    // Ignora "Retirada de Equipamento"
-                    if (tipoTrabalho === "Retirada de Equipamento") {
-                        return; // Pula esta linha se o tipo de trabalho for "Retirada de Equipamento"
-                    }
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
 
-                    // Extraindo a data e hora do agendamento
-                    const [dataAgendamento, horaAgendamento] = agendamento.split(" ");
-                    const [dia, mes, ano] = dataAgendamento.split("/").map(Number);
-                    const [hora, minuto] = horaAgendamento.split(":").map(Number);
+            // Cria o corpo da tabela
+            const tbody = document.createElement('tbody');
 
-                    // Verificação para garantir que a variável ano esteja correta
-                    if (isNaN(ano) || isNaN(mes) || isNaN(dia) || isNaN(hora) || isNaN(minuto)) {
-                        console.error("Data do Agendamento inválida:", agendamento);
-                        return; // Pula esta linha se a data não estiver correta
-                    }
+            data.forEach(item => {
+                const tr = document.createElement('tr');
 
-                    // Determinando o prazo de vencimento com base no tipo de trabalho
-                    let prazoVencimento = 0;
-                    if (tipoTrabalho === "Manutenção") {
-                        prazoVencimento = 24; // 24 horas
-                    } else if (tipoTrabalho === "Mudança de endereço" || tipoTrabalho === "Ativação") {
-                        prazoVencimento = 72; // 72 horas
-                    } else {
-                        return; // Se o tipo de trabalho não for relevante, ignora
-                    }
+                const td1 = document.createElement('td');
+                td1.textContent = item.cidade;
 
-                    // Calculando a data de vencimento
-                    const dataVencimento = new Date(ano, mes - 1, dia, hora + prazoVencimento, minuto);
-                    console.log("Data de Vencimento:", dataVencimento);
+                const td2 = document.createElement('td');
+                td2.textContent = item.agendamento;
 
-                    // Verificando se já venceu
-                    let tempoRestante;
-                    const diff = dataVencimento - now; // diferença em milissegundos
+                const td3 = document.createElement('td');
+                td3.textContent = item.tipoTrabalho;
 
-                    if (diff < 0) {
-                        tempoRestante = "Já venceu";
-                    } else {
-                        const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-                        const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        tempoRestante = `${dias} dias, ${horas} horas e ${minutos} minutos`;
-                    }
+                const td4 = document.createElement('td');
+                td4.textContent = item.numeroCompromisso;
 
-                    processedData.push({
-                        cidade,
-                        agendamento,
-                        tipoTrabalho,
-                        numeroCompromisso,
-                        tempoRestante,
-                        dataVencimento,
-                        isVencido: diff < 0 // Adicionando um indicador para saber se já venceu
-                    });
-                });
+                const td5 = document.createElement('td');
+                td5.textContent = item.tempoRestante;
 
-                // Ordena os dados pelo tempo restante, colocando os não vencidos primeiro
-                processedData.sort((a, b) => {
-                    if (a.isVencido && !b.isVencido) return 1; // b primeiro
-                    if (!a.isVencido && b.isVencido) return -1; // a primeiro
-                    return a.dataVencimento - b.dataVencimento; // Ordena por data de vencimento se ambos forem iguais
-                });
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+                tr.appendChild(td3);
+                tr.appendChild(td4);
+                tr.appendChild(td5);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
 
-                // Exibe os dados na tabela
-                processedData.forEach(item => {
-                    const tr = document.createElement('tr');
+            // Adiciona event listeners para filtros
+            document.querySelectorAll('.filter-container input').forEach(input => {
+                input.addEventListener('input', () => filterTable(data));
+            });
+        }
 
-                    const td1 = document.createElement('td');
-                    td1.textContent = item.cidade; // Ajuste para item.cidade
+        function filterTable(data) {
+            const cidadeFilter = document.getElementById('filterCidade').value.toLowerCase();
+            const agendamentoFilter = document.getElementById('filterAgendamento').value.toLowerCase();
+            const tipoTrabalhoFilter = document.getElementById('filterTipoTrabalho').value.toLowerCase();
+            const numeroFilter = document.getElementById('filterNumero').value.toLowerCase();
 
-                    const td2 = document.createElement('td');
-                    td2.textContent = item.agendamento;
+            const filteredData = data.filter(item => {
+                return (item.cidade.toLowerCase().includes(cidadeFilter) &&
+                        item.agendamento.toLowerCase().includes(agendamentoFilter) &&
+                        item.tipoTrabalho.toLowerCase().includes(tipoTrabalhoFilter) &&
+                        item.numeroCompromisso.toLowerCase().includes(numeroFilter));
+            });
 
-                    const td3 = document.createElement('td');
-                    td3.textContent = item.tipoTrabalho;
-
-                    const td4 = document.createElement('td');
-                    td4.textContent = item.numeroCompromisso;
-
-                    const td5 = document.createElement('td');
-                    td5.textContent = item.tempoRestante;
-
-                    tr.appendChild(td1);
-                    tr.appendChild(td2);
-                    tr.appendChild(td3);
-                    tr.appendChild(td4);
-                    tr.appendChild(td5);
-                    tbody.appendChild(tr);
-                });
-                table.appendChild(tbody);
-            }
+            // Limpa a tabela e exibe os dados filtrados
+            const table = document.getElementById("csvTable");
+            table.innerHTML = ''; // Limpa a tabela
+            displayTable(filteredData); // Exibe a tabela filtrada
         }
     </script>
 </body>
