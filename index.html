@@ -13,20 +13,22 @@
     <button id="removeFile" >Remover Arquivo</button>
     <button id="downloadAll" >Baixar Todos os Dados</button>
     <div id="loadingIndicator">Carregando...</div>
-    <div id="output" class="table-container">
-        <div class="filter-container">
-            <input type="text" id="filterCidade" placeholder="Filtrar por Cidade">
-            <input type="text" id="filterAgendamento" placeholder="Filtrar por Data Agendamento">
-            <input type="text" id="filterTipoTrabalho" placeholder="Filtrar por Tipo de Trabalho">
-            <input type="text" id="filterNumero" placeholder="Filtrar por Número de Compromisso">
-            <input type="text" id="filterTempo" placeholder="Filtrar por Tempo até Vencer">
-        </div>
-        <div id="recordCount" class="pagination"></div>
+    <div id="recordCount" class="pagination"></div>
         <div class="scroll-container">
             <div class="scroll-content">
                 <div id="pagination" class="pagination"></div>
             </div>
         </div>
+    <div id="output" class="table-container">
+        <div class="filter-container">
+            <input type="text" id="filterCidade" placeholder="Cidade">
+            <input type="text" id="filterRegional" placeholder="Regional">
+            <input type="text" id="filterAgendamento" placeholder="Data do 1° Agendamento">
+            <input type="text" id="filterTipoTrabalho" placeholder="Tipo de Trabalho">
+            <input type="text" id="filterNumero" placeholder="Número de Compromisso">
+            <input type="text" id="filterTempo" placeholder="Tempo até Vencer">
+        </div>
+        
         
         <table id="csvTable"></table>
     </div>

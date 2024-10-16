@@ -57,9 +57,10 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
                 const tipoTrabalho = row["Tipo de Trabalho"];
                 const numeroCompromisso = row["Número de compromisso"];
                 const cidade = row["Cidade"];
+                const regional = row["Regional"];
 
                 // Ignora linhas vazias
-                if (!agendamento || !tipoTrabalho || !numeroCompromisso || !cidade) {
+                if (!agendamento || !tipoTrabalho || !numeroCompromisso || !cidade || !regional) {
                     return; // Pula esta linha se qualquer um dos dados obrigatórios estiver ausente
                 }
 
@@ -110,6 +111,7 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
 
                 processedData.push({
                     cidade,
+                    regional,
                     agendamento,
                     tipoTrabalho,
                     numeroCompromisso,
@@ -138,6 +140,7 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
             const headerRow = document.createElement("tr");
             headerRow.innerHTML = `
                 <th>Cidade</th>
+                <th>Regional</th>
                 <th>Data do Primeiro Agendamento</th>
                 <th>Tipo de Trabalho</th>
                 <th>Número de Compromisso</th>
@@ -157,6 +160,7 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
                 const tableRow = document.createElement("tr");
                 tableRow.innerHTML = `
                     <td>${row.cidade}</td>
+                    <td>${row.regional}</td>
                     <td>${row.agendamento}</td>
                     <td>${row.tipoTrabalho}</td>
                     <td>${row.numeroCompromisso}</td>
@@ -199,6 +203,7 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
 
         // Filtros
         document.getElementById("filterCidade").addEventListener("input", applyFilters);
+        document.getElementById("filterRegional").addEventListener("input", applyFilters);
         document.getElementById("filterAgendamento").addEventListener("input", applyFilters);
         document.getElementById("filterTipoTrabalho").addEventListener("input", applyFilters);
         document.getElementById("filterNumero").addEventListener("input", applyFilters);
@@ -206,6 +211,7 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
 
         function applyFilters() {
             const cidadeFilter = document.getElementById("filterCidade").value.toLowerCase();
+            const regionalFilter = document.getElementById("filterRegional").value.toLowerCase();
             const agendamentoFilter = document.getElementById("filterAgendamento").value.toLowerCase();
             const tipoTrabalhoFilter = document.getElementById("filterTipoTrabalho").value.toLowerCase();
             const numeroFilter = document.getElementById("filterNumero").value.toLowerCase();
@@ -214,6 +220,7 @@ document.getElementById("csvFile").addEventListener("change", handleFileSelect);
             const filteredData = currentData.filter(row => {
                 return (
                     row.cidade.toLowerCase().includes(cidadeFilter) &&
+                    row.regional.toLowerCase().includes(regionalFilter) &&
                     row.agendamento.toLowerCase().includes(agendamentoFilter) &&
                     row.tipoTrabalho.toLowerCase().includes(tipoTrabalhoFilter) &&
                     row.numeroCompromisso.toLowerCase().includes(numeroFilter) &&
