@@ -171,7 +171,7 @@
         function removeFile() {
             document.getElementById("csvFile").value = ''; // Limpa o campo de upload
             currentData = []; // Reseta os dados
-            document.getElementById("removeFile").style.display = 'none'; // Esconde o botão de remover
+            document.getElementById("removeFile"); // Esconde o botão de remover
             document.getElementById("csvTable").innerHTML = ''; // Limpa a tabela
             document.getElementById("recordCount").innerText = ''; // Limpa a contagem de registros
             document.getElementById("pagination").innerHTML = ''; // Limpa a paginação
