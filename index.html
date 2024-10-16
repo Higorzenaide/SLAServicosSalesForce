@@ -76,7 +76,7 @@
 
             if (data.length > 0) {
                 // Cria o cabeçalho da tabela
-                const headers = ["Data do Primeiro Agendamento", "Tipo de Trabalho", "Número de compromisso", "Tempo até vencer"];
+                const headers = ["Cidade", "Data do Primeiro Agendamento", "Tipo de Trabalho", "Número de compromisso", "Tempo até vencer"];
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
                 headers.forEach(header => {
@@ -95,9 +95,10 @@
                     const agendamento = row["Data do Primeiro Agendamento"];
                     const tipoTrabalho = row["Tipo de Trabalho"];
                     const numeroCompromisso = row["Número de compromisso"];
+                    const cidade = row["Cidade"];
 
                     // Ignora linhas vazias
-                    if (!agendamento || !tipoTrabalho || !numeroCompromisso) {
+                    if (!agendamento || !tipoTrabalho || !numeroCompromisso || !cidade) {
                         return; // Pula esta linha se qualquer um dos dados obrigatórios estiver ausente
                     }
 
@@ -145,6 +146,7 @@
                     }
 
                     processedData.push({
+                        cidade,
                         agendamento,
                         tipoTrabalho,
                         numeroCompromisso,
@@ -164,19 +166,27 @@
                 // Exibe os dados na tabela
                 processedData.forEach(item => {
                     const tr = document.createElement('tr');
+
                     const td1 = document.createElement('td');
-                    td1.textContent = item.agendamento;
+                    td1.textContent = item.cidade; // Ajuste para item.cidade
+
                     const td2 = document.createElement('td');
-                    td2.textContent = item.tipoTrabalho;
+                    td2.textContent = item.agendamento;
+
                     const td3 = document.createElement('td');
-                    td3.textContent = item.numeroCompromisso;
+                    td3.textContent = item.tipoTrabalho;
+
                     const td4 = document.createElement('td');
-                    td4.textContent = item.tempoRestante;
+                    td4.textContent = item.numeroCompromisso;
+
+                    const td5 = document.createElement('td');
+                    td5.textContent = item.tempoRestante;
 
                     tr.appendChild(td1);
                     tr.appendChild(td2);
                     tr.appendChild(td3);
                     tr.appendChild(td4);
+                    tr.appendChild(td5);
                     tbody.appendChild(tr);
                 });
                 table.appendChild(tbody);
