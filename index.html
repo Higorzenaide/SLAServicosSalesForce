@@ -86,6 +86,17 @@
         h5{
             text-align: center;
         }
+        
+        .scroll-container {
+            width: 100%;
+            overflow-x: auto; /* Permite rolagem horizontal */
+            white-space: nowrap; /* Impede quebra de linha */
+            border: 1px solid #ccc; /* Borda para visualização */
+        }
+
+        .scroll-content {
+            display: inline-block; /* Permite que os itens fiquem lado a lado */
+        }
     </style>
 </head>
 <body>
@@ -104,7 +115,12 @@
             <input type="text" id="filterTempo" placeholder="Filtrar por Tempo até Vencer">
         </div>
         <div id="recordCount" class="pagination"></div>
-        <div id="pagination" class="pagination"></div>
+        <div class="scroll-container">
+            <div class="scroll-content">
+                <div id="pagination" class="pagination"></div>
+            </div>
+        </div>
+        
         <table id="csvTable"></table>
     </div>
 
@@ -336,6 +352,27 @@
             currentPage = 1; // Reinicia a página para mostrar os primeiros resultados
             displayTable(filteredData); // Exibe os dados filtrados
         }
+
+        // Função para rolar para a direita
+    function scrollRight() {
+        const container = document.querySelector('.scroll-container');
+        container.scrollBy({
+            top: 0,
+            left: 100, // Altere o valor para ajustar a quantidade que rola
+            behavior: 'smooth' // Rolagem suave
+        });
+    }
+
+    // Função para rolar para a esquerda
+    function scrollLeft() {
+        const container = document.querySelector('.scroll-container');
+        container.scrollBy({
+            top: 0,
+            left: -100, // Altere o valor para ajustar a quantidade que rola
+            behavior: 'smooth' // Rolagem suave
+        });
+    }
+
     </script>
 </body>
 </html>
