@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload de CSV</title>
+    <title>Prazos de vencimento</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -64,7 +64,7 @@
             background-color: #0056b3;
         }
         .table-container {
-            max-width: 800px;
+            max-width: 100%;
             margin: 0 auto;
             overflow-x: auto;
         }
@@ -74,14 +74,19 @@
             margin-top: 10px;
         }
         .filter-container input {
-            width: 20%;
+            width: 100%;
+        }
+        .pagination {
+            text-align: center;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <h1>Upload CSV</h1>
+    <h1>Prazos de vencimento</h1>
     <input type="file" id="csvFile" accept=".csv">
-    <button id="removeFile" style="display:none;">Remover Arquivo</button>
+    <button id="removeFile" >Remover Arquivo</button>
+    <button id="downloadAll" >Baixar Todos os Dados</button>
     <div id="loadingIndicator">Carregando...</div>
     <div id="output" class="table-container">
         <div class="filter-container">
@@ -91,6 +96,8 @@
             <input type="text" id="filterNumero" placeholder="Filtrar por Número de Compromisso">
             <input type="text" id="filterTempo" placeholder="Filtrar por Tempo até Vencer">
         </div>
+        <div id="recordCount" class="pagination"></div>
+        <div id="pagination" class="pagination"></div>
         <table id="csvTable"></table>
     </div>
 
@@ -98,8 +105,11 @@
     <script>
         document.getElementById("csvFile").addEventListener("change", handleFileSelect);
         document.getElementById("removeFile").addEventListener("click", removeFile);
+        document.getElementById("downloadAll").addEventListener("click", downloadAllData);
 
         let currentData = [];
+        let currentPage = 1;
+        const recordsPerPage = 500; // Número de registros por página
 
         function handleFileSelect(event) {
             const file = event.target.files[0];
@@ -139,6 +149,8 @@
             currentData = []; // Reseta os dados
             document.getElementById("removeFile").style.display = 'none'; // Esconde o botão de remover
             document.getElementById("csvTable").innerHTML = ''; // Limpa a tabela
+            document.getElementById("recordCount").innerText = ''; // Limpa a contagem de registros
+            document.getElementById("pagination").innerHTML = ''; // Limpa a paginação
         }
 
         function processCsvData(data) {
@@ -191,13 +203,23 @@
                     tempoRestante = `${dias} dias, ${horas} horas e ${minutos} minutos`;
                 }
 
+                // Formatando a data de vencimento para português
+                const dataVencimentoFormatada = dataVencimento.toLocaleString('pt-BR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+
                 processedData.push({
                     cidade,
                     agendamento,
                     tipoTrabalho,
                     numeroCompromisso,
                     tempoRestante,
-                    dataVencimento,
+                    dataVencimento: dataVencimentoFormatada, // Usando a data formatada
                     isVencido: diff < 0 // Adicionando um indicador para saber se já venceu
                 });
             });
@@ -206,7 +228,7 @@
             processedData.sort((a, b) => {
                 if (a.isVencido && !b.isVencido) return 1; // b primeiro
                 if (!a.isVencido && b.isVencido) return -1; // a primeiro
-                return a.dataVencimento - b.dataVencimento; // Ordena por data de vencimento se ambos forem iguais
+                return new Date(a.dataVencimento) - new Date(b.dataVencimento);
             });
 
             return processedData;
@@ -214,71 +236,97 @@
 
         function displayTable(data) {
             const table = document.getElementById("csvTable");
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            const headers = ["Cidade", "Data do Primeiro Agendamento", "Tipo de Trabalho", "Número de compromisso", "Tempo até vencer"];
+            table.innerHTML = ''; // Limpa a tabela anterior
 
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
+            // Cabeçalho da tabela
+            const headerRow = document.createElement("tr");
+            headerRow.innerHTML = `
+                <th>Cidade</th>
+                <th>Data do Agendamento</th>
+                <th>Tipo de Trabalho</th>
+                <th>Número de Compromisso</th>
+                <th>Tempo até Vencer</th>
+                <th>Data de Vencimento</th>
+            `;
+            table.appendChild(headerRow);
+
+            // Paginação
+            const totalPages = Math.ceil(data.length / recordsPerPage);
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = Math.min(startIndex + recordsPerPage, data.length);
+            const paginatedData = data.slice(startIndex, endIndex);
+
+            // Adiciona as linhas de dados
+            paginatedData.forEach(row => {
+                const tableRow = document.createElement("tr");
+                tableRow.innerHTML = `
+                    <td>${row.cidade}</td>
+                    <td>${row.agendamento}</td>
+                    <td>${row.tipoTrabalho}</td>
+                    <td>${row.numeroCompromisso}</td>
+                    <td>${row.tempoRestante}</td>
+                    <td>${row.dataVencimento}</td>
+                `;
+                table.appendChild(tableRow);
             });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
 
-            // Cria o corpo da tabela
-            const tbody = document.createElement('tbody');
+            // Exibe contagem de registros
+            const recordCount = document.getElementById("recordCount");
+            recordCount.innerText = `Exibindo ${startIndex + 1} a ${endIndex} de ${data.length} registros`;
 
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-
-                const td1 = document.createElement('td');
-                td1.textContent = item.cidade;
-
-                const td2 = document.createElement('td');
-                td2.textContent = item.agendamento;
-
-                const td3 = document.createElement('td');
-                td3.textContent = item.tipoTrabalho;
-
-                const td4 = document.createElement('td');
-                td4.textContent = item.numeroCompromisso;
-
-                const td5 = document.createElement('td');
-                td5.textContent = item.tempoRestante;
-
-                tr.appendChild(td1);
-                tr.appendChild(td2);
-                tr.appendChild(td3);
-                tr.appendChild(td4);
-                tr.appendChild(td5);
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-
-            // Adiciona event listeners para filtros
-            document.querySelectorAll('.filter-container input').forEach(input => {
-                input.addEventListener('input', () => filterTable(data));
-            });
+            // Exibe a paginação
+            const pagination = document.getElementById("pagination");
+            pagination.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement("button");
+                pageButton.innerText = i;
+                pageButton.onclick = function() {
+                    currentPage = i; // Atualiza a página atual
+                    displayTable(data); // Re-renderiza a tabela
+                };
+                pagination.appendChild(pageButton);
+            }
+        }
+        function downloadAllData() {
+            const csv = Papa.unparse(currentData);
+            
+            // Adicionando um BOM para UTF-8 no início do CSV
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'VencimentoSF.csv');
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        function filterTable(data) {
-            const cidadeFilter = document.getElementById('filterCidade').value.toLowerCase();
-            const agendamentoFilter = document.getElementById('filterAgendamento').value.toLowerCase();
-            const tipoTrabalhoFilter = document.getElementById('filterTipoTrabalho').value.toLowerCase();
-            const numeroFilter = document.getElementById('filterNumero').value.toLowerCase();
+        // Filtros
+        document.getElementById("filterCidade").addEventListener("input", applyFilters);
+        document.getElementById("filterAgendamento").addEventListener("input", applyFilters);
+        document.getElementById("filterTipoTrabalho").addEventListener("input", applyFilters);
+        document.getElementById("filterNumero").addEventListener("input", applyFilters);
+        document.getElementById("filterTempo").addEventListener("input", applyFilters);
 
-            const filteredData = data.filter(item => {
-                return (item.cidade.toLowerCase().includes(cidadeFilter) &&
-                        item.agendamento.toLowerCase().includes(agendamentoFilter) &&
-                        item.tipoTrabalho.toLowerCase().includes(tipoTrabalhoFilter) &&
-                        item.numeroCompromisso.toLowerCase().includes(numeroFilter));
+        function applyFilters() {
+            const cidadeFilter = document.getElementById("filterCidade").value.toLowerCase();
+            const agendamentoFilter = document.getElementById("filterAgendamento").value.toLowerCase();
+            const tipoTrabalhoFilter = document.getElementById("filterTipoTrabalho").value.toLowerCase();
+            const numeroFilter = document.getElementById("filterNumero").value.toLowerCase();
+            const tempoFilter = document.getElementById("filterTempo").value.toLowerCase();
+
+            const filteredData = currentData.filter(row => {
+                return (
+                    row.cidade.toLowerCase().includes(cidadeFilter) &&
+                    row.agendamento.toLowerCase().includes(agendamentoFilter) &&
+                    row.tipoTrabalho.toLowerCase().includes(tipoTrabalhoFilter) &&
+                    row.numeroCompromisso.toLowerCase().includes(numeroFilter) &&
+                    row.tempoRestante.toLowerCase().includes(tempoFilter)
+                );
             });
 
-            // Limpa a tabela e exibe os dados filtrados
-            const table = document.getElementById("csvTable");
-            table.innerHTML = ''; // Limpa a tabela
-            displayTable(filteredData); // Exibe a tabela filtrada
+            currentPage = 1; // Reinicia a página para mostrar os primeiros resultados
+            displayTable(filteredData); // Exibe os dados filtrados
         }
     </script>
 </body>
